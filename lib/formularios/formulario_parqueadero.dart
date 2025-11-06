@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:app2/formularios/registro_parqueo.dart';
+import 'dart:async';
 
 class FormularioParqueadero extends StatefulWidget {
   final void Function(Registro) onGuardar;
@@ -26,17 +27,28 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
   String? tipoSeleccionado;
   Registro registro = Registro.vacio();
 
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
     _placaController.addListener(() {
-      final texto = Registro.normalizarPlaca(_placaController.text);
-      _placaController.text = texto;
-      _placaController.selection = TextSelection.collapsed(
-        offset: texto.length,
-      );
-      registro.placa = texto;
+      if (_debounce?.isActive ?? false) _debounce!.cancel();
+      _debounce = Timer(const Duration(milliseconds: 300), () {
+        _normalizarPlaca(_placaController.text);
+      });
     });
+  }
+
+  void _normalizarPlaca(String texto) {
+    final normalizado = Registro.normalizarPlaca(texto);
+    if (normalizado != texto) {
+      _placaController.value = TextEditingValue(
+        text: normalizado,
+        selection: TextSelection.collapsed(offset: normalizado.length),
+      );
+    }
+    registro.placa = normalizado;
   }
 
   void limpiarCampos() {
@@ -53,6 +65,7 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _placaController.dispose();
     _modeloController.dispose();
     _colorController.dispose();
@@ -85,7 +98,7 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
           ),
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(labelText: 'Tipo de vehículo'),
-            initialValue: tipoSeleccionado,
+            value: tipoSeleccionado,
             items: ['Moto', 'Carro']
                 .map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)))
                 .toList(),
