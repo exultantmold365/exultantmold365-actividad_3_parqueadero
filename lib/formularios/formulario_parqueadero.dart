@@ -3,8 +3,13 @@ import 'package:app2/formularios/registro_parqueo.dart';
 
 class FormularioParqueadero extends StatefulWidget {
   final void Function(Registro) onGuardar;
+  final bool Function(Registro)? validarDuplicado;
 
-  const FormularioParqueadero({super.key, required this.onGuardar});
+  const FormularioParqueadero({
+    super.key,
+    required this.onGuardar,
+    this.validarDuplicado,
+  });
 
   @override
   State<FormularioParqueadero> createState() => FormularioParqueaderoState();
@@ -64,30 +69,25 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
         children: [
           TextFormField(
             controller: _nombreController,
-            decoration: InputDecoration(labelText: 'Nombre del conductor'),
+            decoration: const InputDecoration(
+              labelText: 'Nombre del conductor',
+            ),
             onChanged: (value) => registro.nombrePropietario = value,
-            validator: (value) {
-              if (value == null || value.isEmpty) return 'Campo obligatorio';
-              return null;
-            },
+            validator: (value) =>
+                value == null || value.isEmpty ? 'Campo obligatorio' : null,
           ),
           TextFormField(
             controller: _idController,
-            decoration: InputDecoration(labelText: 'Identificación'),
+            decoration: const InputDecoration(labelText: 'Identificación'),
             onChanged: (value) => registro.identificacion = value,
-            validator: (value) {
-              if (value == null || value.isEmpty) return 'Campo obligatorio';
-              return null;
-            },
+            validator: (value) =>
+                value == null || value.isEmpty ? 'Campo obligatorio' : null,
           ),
           DropdownButtonFormField<String>(
-            decoration: InputDecoration(labelText: 'Tipo de vehículo'),
-            value: tipoSeleccionado,
+            decoration: const InputDecoration(labelText: 'Tipo de vehículo'),
+            initialValue: tipoSeleccionado,
             items: ['Moto', 'Carro']
-                .map(
-                  (tipo) =>
-                      DropdownMenuItem<String>(value: tipo, child: Text(tipo)),
-                )
+                .map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)))
                 .toList(),
             onChanged: (value) {
               setState(() {
@@ -95,14 +95,12 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
                 registro.tipoVehiculo = value ?? '';
               });
             },
-            validator: (value) {
-              if (value == null || value.isEmpty) return 'Seleccione un tipo';
-              return null;
-            },
+            validator: (value) =>
+                value == null || value.isEmpty ? 'Seleccione un tipo' : null,
           ),
           TextFormField(
             controller: _placaController,
-            decoration: InputDecoration(labelText: 'Placa'),
+            decoration: const InputDecoration(labelText: 'Placa'),
             maxLength: 8,
             validator: (value) {
               if (value == null || value.isEmpty) return 'Campo obligatorio';
@@ -117,20 +115,33 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
           ),
           TextFormField(
             controller: _modeloController,
-            decoration: InputDecoration(labelText: 'Modelo'),
+            decoration: const InputDecoration(labelText: 'Modelo'),
             onChanged: (value) => registro.modelo = value,
           ),
           TextFormField(
             controller: _colorController,
-            decoration: InputDecoration(labelText: 'Color'),
+            decoration: const InputDecoration(labelText: 'Color'),
             onChanged: (value) => registro.color = value,
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           ElevatedButton(
-            child: Text('Registrar ingreso'),
+            child: const Text('Registrar ingreso'),
             onPressed: () {
               if (_formKey.currentState!.validate()) {
                 registro.horaIngreso = TimeOfDay.now().format(context);
+
+                if (widget.validarDuplicado != null &&
+                    widget.validarDuplicado!(registro)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Ya existe un registro con esta placa o identificación',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
                 widget.onGuardar(registro);
               }
             },

@@ -30,22 +30,42 @@ class Registro {
     tipoVehiculo: '',
   );
 
+  /// Serializa el objeto a un mapa JSON
+  Map<String, dynamic> toJson() => {
+    'placa': placa,
+    'modelo': modelo,
+    'color': color,
+    'horaIngreso': horaIngreso,
+    'horaSalida': horaSalida,
+    'nombrePropietario': nombrePropietario,
+    'identificacion': identificacion,
+    'tipoVehiculo': tipoVehiculo,
+  };
+
+  /// Crea un objeto Registro desde un mapa JSON
+  factory Registro.fromJson(Map<String, dynamic> json) => Registro(
+    placa: json['placa'] ?? '',
+    modelo: json['modelo'] ?? '',
+    color: json['color'] ?? '',
+    horaIngreso: json['horaIngreso'] ?? '',
+    horaSalida: json['horaSalida'] ?? '',
+    nombrePropietario: json['nombrePropietario'] ?? '',
+    identificacion: json['identificacion'] ?? '',
+    tipoVehiculo: json['tipoVehiculo'] ?? '',
+  );
+
   /// Normaliza la placa: mayúsculas, sin espacios, con guion
   static String normalizarPlaca(String input) {
     String texto = input.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
-
     if (texto.length > 6) {
       texto = texto.substring(0, 6);
     }
-
     if (texto.length >= 6) {
       texto = '${texto.substring(0, 3)}-${texto.substring(3)}';
     }
-
     return texto;
   }
 
-  /// Valida el formato de la placa según el tipo de vehículo
   /// Valida el formato de la placa según el tipo de vehículo
   bool placaValida() {
     final motoRegex = RegExp(r'^[A-Z]{3}-\d{2}[A-Z]$'); // Ej: ABC-12D
