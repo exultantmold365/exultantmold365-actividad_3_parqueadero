@@ -15,10 +15,20 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usuarioController = TextEditingController();
   final TextEditingController _claveController = TextEditingController();
 
+  bool _ocultarClave = true; // Control para mostrar/ocultar contraseña
+  bool _cargando = false; // Indicador de carga
+
   @override
   void initState() {
     super.initState();
     verificarSesion();
+  }
+
+  @override
+  void dispose() {
+    _usuarioController.dispose();
+    _claveController.dispose();
+    super.dispose();
   }
 
   Future<void> verificarSesion() async {
@@ -38,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
     await prefs.setBool('adminLogueado', true);
   }
 
-  void validarCredenciales() async {
+  Future<void> validarCredenciales() async {
     final usuario = _usuarioController.text.trim();
     final clave = _claveController.text.trim();
     final claveHash = hashPassword(clave);
@@ -56,8 +66,20 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } else {
       if (mounted) {
+        final mensaje = usuario != 'admin'
+            ? 'Usuario no válido'
+            : 'Contraseña incorrecta';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Credenciales incorrectas')),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(mensaje),
+              ],
+            ),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -95,21 +117,45 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 TextFormField(
                   controller: _claveController,
-                  decoration: const InputDecoration(labelText: 'Contraseña'),
-                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Contraseña',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _ocultarClave ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _ocultarClave = !_ocultarClave;
+                        });
+                      },
+                    ),
+                  ),
+                  obscureText: _ocultarClave,
                   textInputAction: TextInputAction.done,
+                  keyboardType: TextInputType.visiblePassword,
                   validator: (value) => value == null || value.isEmpty
                       ? 'Campo obligatorio'
                       : null,
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      validarCredenciales();
+                      setState(() => _cargando = true);
+                      await validarCredenciales();
+                      setState(() => _cargando = false);
                     }
                   },
-                  child: const Text('Ingresar'),
+                  child: _cargando
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Ingresar'),
                 ),
               ],
             ),

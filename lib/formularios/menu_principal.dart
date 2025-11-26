@@ -25,25 +25,26 @@ class _MenuPrincipalState extends State<MenuPrincipal> {
     cargarRegistros();
   }
 
+  /// Carga registros desde la API
   Future<void> cargarRegistros() async {
     final lista = await RegistroService.cargar();
+    if (!mounted) return; // ✅ seguridad
     setState(() {
       registros = lista;
       mostrarHistorial = registros.isNotEmpty;
     });
   }
 
-  void registrarVehiculo(Registro nuevo) {
-    setState(() {
-      registros.add(nuevo);
-      mostrarHistorial = true;
-    });
-
-    RegistroService.guardar(registros);
+  /// Registra un nuevo vehículo
+  Future<void> registrarVehiculo(Registro nuevo) async {
+    await RegistroService.guardar(nuevo); // 🔹 POST a la API
+    if (!mounted) return;
     mostrarDialogo('Registro exitoso', nuevo.resumen());
     _formularioKey.currentState?.limpiarCampos();
+    cargarRegistros(); // 🔹 recargar lista desde API
   }
 
+  /// Valida duplicados por placa o identificación
   bool validarDuplicado(Registro nuevo) {
     final placaIgual = registros.any((r) => r.placa == nuevo.placa);
     final idIgual = registros.any(
@@ -52,7 +53,8 @@ class _MenuPrincipalState extends State<MenuPrincipal> {
     return placaIgual || idIgual;
   }
 
-  void registrarSalida(Registro r) {
+  /// Registra la salida de un vehículo
+  Future<void> registrarSalida(Registro r) async {
     final horaActual = TimeOfDay.now().format(context);
     final salidaRegistrada = r.registrarSalida(horaActual);
 
@@ -61,27 +63,32 @@ class _MenuPrincipalState extends State<MenuPrincipal> {
         : 'Este vehículo ya salió';
 
     if (salidaRegistrada) {
-      RegistroService.guardar(registros);
+      await RegistroService.actualizar(r.placa, r); // 🔹 PUT a la API
+      if (!mounted) return;
+      cargarRegistros();
     }
 
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
+  /// Cierra sesión y vuelve al login
   Future<void> cerrarSesion() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('adminLogueado', false);
 
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    }
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
   }
 
+  /// Muestra un diálogo informativo
   void mostrarDialogo(String titulo, String mensaje) {
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -102,13 +109,14 @@ class _MenuPrincipalState extends State<MenuPrincipal> {
     return Scaffold(
       body: Column(
         children: [
+          // Encabezado
           Container(
             height: 43,
             width: double.infinity,
             color: const Color.fromARGB(255, 37, 182, 68),
             alignment: Alignment.center,
             child: const Text(
-              'registro de vehiculos',
+              'Registro de vehículos',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -116,6 +124,7 @@ class _MenuPrincipalState extends State<MenuPrincipal> {
               ),
             ),
           ),
+          // Formulario
           Expanded(
             child: Center(
               child: Container(
@@ -133,6 +142,7 @@ class _MenuPrincipalState extends State<MenuPrincipal> {
               ),
             ),
           ),
+          // Botón historial
           if (mostrarHistorial)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -147,12 +157,13 @@ class _MenuPrincipalState extends State<MenuPrincipal> {
                       ),
                     ),
                   );
-
-                  cargarRegistros(); // recarga la lista actualizada
+                  if (!mounted) return;
+                  cargarRegistros();
                 },
                 child: const Text('Ver historial'),
               ),
             ),
+          // Botón cerrar sesión
           Padding(
             padding: const EdgeInsets.only(bottom: 20),
             child: ElevatedButton(

@@ -1,6 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:app2/formularios/registro_parqueo.dart';
-import 'dart:async';
+
+class PlacaFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final normalizado = Registro.normalizarPlaca(newValue.text);
+    return TextEditingValue(
+      text: normalizado,
+      selection: TextSelection.collapsed(offset: normalizado.length),
+    );
+  }
+}
 
 class FormularioParqueadero extends StatefulWidget {
   final void Function(Registro) onGuardar;
@@ -27,30 +41,6 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
   String? tipoSeleccionado;
   Registro registro = Registro.vacio();
 
-  Timer? _debounce;
-
-  @override
-  void initState() {
-    super.initState();
-    _placaController.addListener(() {
-      if (_debounce?.isActive ?? false) _debounce!.cancel();
-      _debounce = Timer(const Duration(milliseconds: 300), () {
-        _normalizarPlaca(_placaController.text);
-      });
-    });
-  }
-
-  void _normalizarPlaca(String texto) {
-    final normalizado = Registro.normalizarPlaca(texto);
-    if (normalizado != texto) {
-      _placaController.value = TextEditingValue(
-        text: normalizado,
-        selection: TextSelection.collapsed(offset: normalizado.length),
-      );
-    }
-    registro.placa = normalizado;
-  }
-
   void limpiarCampos() {
     setState(() {
       registro = Registro.vacio();
@@ -65,7 +55,6 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _placaController.dispose();
     _modeloController.dispose();
     _colorController.dispose();
@@ -98,7 +87,7 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
           ),
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(labelText: 'Tipo de vehículo'),
-            value: tipoSeleccionado,
+            initialValue: tipoSeleccionado,
             items: ['Moto', 'Carro']
                 .map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)))
                 .toList(),
@@ -113,6 +102,7 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
           ),
           TextFormField(
             controller: _placaController,
+            inputFormatters: [PlacaFormatter()],
             decoration: const InputDecoration(labelText: 'Placa'),
             maxLength: 8,
             validator: (value) {
@@ -125,6 +115,7 @@ class FormularioParqueaderoState extends State<FormularioParqueadero> {
               }
               return null;
             },
+            onChanged: (value) => registro.placa = value,
           ),
           TextFormField(
             controller: _modeloController,

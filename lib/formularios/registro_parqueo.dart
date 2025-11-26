@@ -74,11 +74,9 @@ class Registro {
     if (tipoVehiculo.toLowerCase() == 'moto') {
       return motoRegex.hasMatch(placa);
     }
-
     if (tipoVehiculo.toLowerCase() == 'carro') {
       return carroRegex.hasMatch(placa);
     }
-
     return false;
   }
 
@@ -86,14 +84,12 @@ class Registro {
   bool esSimilarA(Registro otro) {
     final p1 = placa.replaceAll('-', '');
     final p2 = otro.placa.replaceAll('-', '');
-
     if (p1.length != p2.length) return false;
 
     int coincidencias = 0;
     for (int i = 0; i < p1.length; i++) {
       if (p1[i] == p2[i]) coincidencias++;
     }
-
     return coincidencias >= 5; // umbral configurable
   }
 
@@ -106,8 +102,14 @@ class Registro {
     return false;
   }
 
+  /// Saber si el vehículo sigue en parqueadero
+  bool estaEnParqueadero() => horaSalida.isEmpty;
+
   /// Genera resumen para mostrar en historial
   String resumen() {
-    return 'Placa: $placa\nTipo: $tipoVehiculo\nIngreso: $horaIngreso\nSalida: ${horaSalida.isEmpty ? "Pendiente" : horaSalida}';
+    return 'Placa: $placa\n'
+        'Tipo: $tipoVehiculo\n'
+        'Ingreso: $horaIngreso\n'
+        'Salida: ${horaSalida.isEmpty ? "Pendiente" : horaSalida}';
   }
 }
